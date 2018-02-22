@@ -11,7 +11,7 @@
   },
   "source": {
     "git": "https://github.com/jonsonxp/ip-kvsorter.git",
-    "tag": "0.2.0"
+    "tag": "0.3.0"
   },
   "interface": {
     "host": {
