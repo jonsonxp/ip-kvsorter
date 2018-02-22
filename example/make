@@ -1,0 +1,8 @@
+#!/bin/sh
+
+gcc -O3 -pthread -lpthread host.c -o host -lm
+gcc -O3 quicksort.c -o quicksort
+gcc -O3 gendata.c -o gendata
+
+./gendata 16777216 data/16777216.data
+#./gendata 64 data/64.data

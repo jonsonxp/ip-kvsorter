@@ -1,0 +1,146 @@
+#!/bin/bash
+PROGNAME=$(basename $0)
+VERSION="0.0.1"
+
+usage() {
+  echo "usage: ./configure.sh" 1>&2
+  echo "Options:" 1>&2
+  echo "    -size NUMBER          : the input size of the merge tree." 1>&2
+  echo "    -device NAME          : the FPGA device model name (like vc707 is xc7vx485tffg1761-2)." 1>&2
+  echo "    [-fifo_depth NUMBER]  : the input fifo depth of the merge tree." 1>&2
+  echo "    -clk NUMBER    : the frequency of clock (MHz)." 1>&2
+  exit 1
+}
+
+for i in "$@"
+do
+case $i in
+	    '-h'|'--help' )
+            usage
+            exit 1
+        ;;
+        '--version' )
+            echo $VERSION
+            exit 1
+            ;;
+        -ip_name)
+        	if [ -z "$2" ]; then
+			IPNAME="ip_kvsorter"
+        	else
+        		IPNAME=$2
+		fi
+        	shift 2
+        	;;
+
+        -device)
+        	if [ -z "$2" ]; then
+        		echo "option requires an argument -- $1" 1>&2
+        		exit 1
+        	fi
+        	DEVICE=$2
+        	shift 2
+        	;;
+        -size)
+        	if [ -z "$2" ]; then
+        		echo "option requires an argument -- $1" 1>&2
+        		exit 1
+        	fi
+        	SIZE=$2
+        	shift 2
+        	;;
+        -clk)
+        	if [ -z "$2" ]; then
+        		echo "option requires an argument -- $1" 1>&2
+        		exit 1
+        	fi
+        	CLK=$2
+        	shift 2
+        	;;        
+        -fifo_depth)
+        	if [ -z "$2" ]; then
+        		FIFO=500
+        	else
+        		FIFO=$2
+        	fi
+        	shift 2
+        	;;
+        -*)
+		shift 2
+        ;;
+        *)
+        ;;
+esac
+done
+
+case $CLK in
+        250)
+        CLKPERIOD=4
+        ;;
+        200)
+        CLKPERIOD=5
+        ;;
+        150)
+        CLKPERIOD=6.667
+        ;;
+        100)
+        CLKPERIOD=10
+        ;;
+        *)
+        echo "Unsupported clock frequency. Only clocks listed below are supported(MHz):"
+        echo "100, 150, 200, or 250.
+"
+        exit
+        ;;
+esac
+
+if [ -z $DEVICE ]; then
+    echo "$PROGNAME: too few arguments" 1>&2
+    echo "Try '$PROGNAME --help' for more information." 1>&2
+    exit 1
+fi
+if [ -z $SIZE ]; then
+    echo "$PROGNAME: too few arguments" 1>&2
+    echo "Try '$PROGNAME --help' for more information." 1>&2
+    exit 1
+fi
+if [ -z $CLKPERIOD ]; then
+    echo "$PROGNAME: too few arguments" 1>&2
+    echo "Try '$PROGNAME --help' for more information." 1>&2
+    exit 1
+fi
+if [ -z $IPNAME ]; then
+    IPNAME="ip_kvsorter"
+fi
+
+
+#main.cpp
+ruby ./generator/genIP.rb $SIZE $FIFO $IPNAME > ./src/main.cpp
+sed -i "/void/c\void $IPNAME(" ./src/main.hpp
+sed -i "/pragma_ipcall/c\	$IPNAME(in, out);//pragma_ipcall" ./src/test.cpp
+echo "Updated HLS code and written into ./src/main.cpp & ./src/main.hpp" 1>&2
+
+
+sed -i "/define LOOPSIZE/c\#define LOOPSIZE $SIZE" ./driver/rt_mergetree/java/util/sortlib.c
+echo "Updated driver" 1>&2
+
+#./scripts/hls.tcl set_part
+sed -i "/set_part/c\set_part {$DEVICE}" ./scripts/hls.tcl
+echo "Updated the board FPGA part in ./scripts/hls.tcl" 1>&2
+
+#./scripts/hls.tcl clk
+sed -i "/create_clock -period/c\create_clock -period $CLKPERIOD -name default" ./scripts/hls.tcl
+echo "Updated the clock period in ./scripts/hls.tcl" 1>&2
+
+#./scripts/hls.tcl ip_name
+sed -i "/set ip_name/c\set ip_name $IPNAME" ./scripts/hls.tcl
+echo "Updated the ip name in ./scripts/hls.tcl" 1>&2
+
+#make IP
+sed -i "/IPNAME=/c\IPNAME=$IPNAME" make
+echo "Updated the ip name in make" 1>&2
+
+#synth.tcl
+sed -i "/set top_module/c\set top_module $IPNAME" ./scripts/synth.tcl
+sed -i "/set device_type/c\set device_type $DEVICE" ./scripts/synth.tcl
+echo "Set top module IP name and device type in ./scripts/synth.tcl." 1>&2
+

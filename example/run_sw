@@ -1,0 +1,6 @@
+#!/bin/sh
+
+./quicksort 16777216 data/16777216.data data/16777216.sw.result
+#./quicksort 64 data/64.data data/64.sw.result
+
+

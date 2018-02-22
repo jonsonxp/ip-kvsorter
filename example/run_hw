@@ -1,0 +1,5 @@
+#!/bin/sh
+
+./host 16777216 64 data/16777216.data data/16777216.hw.result 400 1024 0.1 /dev/xillybus_read_128 /dev/xillybus_write_128 m1.log 0
+#./host 64 64 data/64.data data/64.hw.result 400 1024 0.1 /dev/xillybus_read_128 /dev/xillybus_write_128 m1.log 0
+
