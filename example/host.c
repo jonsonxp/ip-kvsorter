@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
     }
     printf("There are %d items in this file.\n", item_total_num);
     time_read_end = f_get_time();
-    printf("Read time is %.6f s.\n", time_read_end - time_read_start);
+    printf("Reading data file used %.6f s.\n", time_read_end - time_read_start);
 
     //------------------------------------------------------
     // Sperate items to HW sorting part and SW sorting part
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 
     data_to_cpu = data_to_fpga + item_HW;
     printf("item_HW=%d.\n", item_HW);
-    printf("item_SW=%d.\n", item_SW);
+    printf("item_SW=%d.\n\n", item_SW);
     //------------------------------------------------------
     // Prepare for quick sort thread
     //------------------------------------------------------
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
     
     while (loop_cnt <= loop_time) {
         time_start_loop[loop_cnt - 1] = f_get_time();
-        printf("Loop time %d.\n", loop_time);
+        printf("Loop time %d of %d.\n", loop_cnt, loop_time);
         stt.loop_cnt = loop_cnt;
         rtt.loop_cnt = loop_cnt;
         for (index = 0; index < k; index++) {
@@ -321,7 +321,6 @@ void f_add_flag(int loop_cnt, int k, int item_HW, myDataType* data_to_fpga)
     int span;
     int channel = -1;
     span = (int)pow((double)k, (double)(loop_cnt - 1));
-    printf("Span=%d.\n", span);
     for (index = 0; index < item_HW; index++) {
         if ((index + 1) % span == 0) {
             data_to_fpga[index].flag_end = 0x01;
@@ -333,7 +332,6 @@ void f_add_flag(int loop_cnt, int k, int item_HW, myDataType* data_to_fpga)
         }
         data_to_fpga[index].flag_channel = (unsigned char)channel;
     }
-    printf("Flag addition finish.\n");
 }
 
 
@@ -353,7 +351,6 @@ void f_write_item(int fpga_write_driver_fd, int item_num, myDataType* data_to_fp
         bytes_written = write(fpga_write_driver_fd, ((unsigned char*)(data_to_fpga)) + sent_cnt, item_num * DATAWIDTH - sent_cnt);
 
         if ((bytes_written < 0) && (errno == EINTR)) {
-            printf("here(?!).\n");
             continue;
         }
         if (bytes_written < 0) {
@@ -399,8 +396,8 @@ void* f_td_fpga_write(void* arg)
     }
     (*stt).fpga_write_driver_fd = fpga_write_driver_fd;
 
-    printf("Start writting thread.\n");
-    printf("loop_cnt=%d,k=%d,item_HW=%d.\n", loop_cnt, k, item_HW);
+    //printf("Start writting thread.\n");
+    //printf("loop_cnt=%d,k=%d,item_HW=%d.\n", loop_cnt, k, item_HW);
 
     data_to_send = (myDataType*)calloc(ch_fifo_size * DATAWIDTH * k, sizeof(myDataType));
 
@@ -444,11 +441,11 @@ void* f_td_fpga_write(void* arg)
         }
     }
     time_sw = f_get_time() - time_start - time_hw;
-    printf("time sw: %.6fs, time hw: %.6fs \n", time_sw, time_hw);
+    //printf("time sw: %.6fs, time hw: %.6fs \n", time_sw, time_hw);
 
     free(data_to_send);
     close(fpga_write_driver_fd);
-    printf("FPGA write finish.\n");
+    //printf("FPGA write finish.\n");
 }
 
 void f_read_item(int fpga_read_driver_fd, myReceiveTreadType* rtt)
@@ -465,7 +462,6 @@ void f_read_item(int fpga_read_driver_fd, myReceiveTreadType* rtt)
 
     buf = (unsigned char*)calloc(read_buf_size, sizeof(unsigned char));
     span = (int)pow((double)(*rtt).k, (double)((*rtt).loop_cnt) - 1);
-    printf("read span %d\n", span);
     
     while (1) { 
         time_start_read = f_get_time();
@@ -510,7 +506,7 @@ void f_read_item(int fpga_read_driver_fd, myReceiveTreadType* rtt)
 void f_td_fpga_read(myReceiveTreadType* rtt)
 {
     int fpga_read_driver_fd;
-    printf("Start reading thread.\n");
+    //printf("Start reading thread.\n");
     lbopenread:
     fpga_read_driver_fd = open(devRead, O_RDONLY);
     if (fpga_read_driver_fd < 0) {

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+date +"%D, %T"
+./host 16777216 64 data/16777216.data data/16777216.hw1.result 400 1024 0.1 /dev/xillybus_read_128_1 /dev/xillybus_write_128_1 m1.log 0&
+./host 16777216 64 data/16777216.data data/16777216.hw2.result 400 1024 0.1 /dev/xillybus_read_128_2 /dev/xillybus_write_128_2 m2.log 0&
+./host 16777216 64 data/16777216.data data/16777216.hw3.result 400 1024 0.1 /dev/xillybus_read_128_3 /dev/xillybus_write_128_3 m3.log 0&
+./host 16777216 64 data/16777216.data data/16777216.hw4.result 400 1024 0.1 /dev/xillybus_read_128_4 /dev/xillybus_write_128_4 m4.log 0&
+wait
+date +"%D, %T"
+
